@@ -1,0 +1,93 @@
+version: "3.9"
+
+services:
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ensia123456
+      POSTGRES_DB: dmsdb
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+
+  minio:
+    image: quay.io/minio/minio:latest
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: ensia123456
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: any
+
+  documents:
+    image: dms-documents:latest
+    ports:
+      - "8081:8081"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/dmsdb
+      DB_USER: myuser
+      DB_PASS: safiasafia
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: admin
+      S3_SECRET_KEY: ensia123456
+      S3_BUCKET: ensia
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+
+  comments:
+    image: dms-comments:latest
+    ports:
+      - "8083:8083"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/dmsdb
+      DB_USER: myuser
+      DB_PASS: safiasafia
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+
+  esb:
+    image: dms-esb:latest
+    ports:
+      - "8084:8084"
+    environment:
+      DOCUMENTS_SERVICE_URL: http://documents:8081
+      COMMENTS_SERVICE_URL: http://comments:8083
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+
+  gateway:
+    image: dms-gateway:latest
+    ports:
+      - "8080:8080"
+    environment:
+      DOCUMENTS_SERVICE_URL: http://documents:8081
+      COMMENTS_SERVICE_URL: http://comments:8083
+      ESB_SERVICE_URL: http://esb:8084
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+
+volumes:
+  pg_data:
+  minio_data:

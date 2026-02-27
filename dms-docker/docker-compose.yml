@@ -1,0 +1,101 @@
+version: "3.9"
+
+services:
+
+  # ===== DATABASE =====
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: safiasafia
+      POSTGRES_DB: dmsdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    restart: always
+
+  # ===== OBJECT STORAGE =====
+  minio:
+    image: quay.io/minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: ensia123456
+    volumes:
+      - minio_data:/data
+    restart: always
+
+  # ===== DOCUMENTS SERVICE =====
+  documents:
+    image: dms-documents
+    ports:
+      - "8081:8081"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/dmsdb
+      DB_USER: myuser
+      DB_PASS: safiasafia
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: admin
+      S3_SECRET_KEY: ensia123456
+    depends_on:
+      - postgres
+      - minio
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1"]
+      interval: 5s
+      retries: 5
+
+  # ===== COMMENTS SERVICE =====
+  comments:
+    image: dms-comments
+    ports:
+      - "8083:8083"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/dmsdb
+      DB_USER: myuser
+      DB_PASS: safiasafia
+    depends_on:
+      - postgres
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8083/actuator/health || exit 1"]
+      interval: 5s
+      retries: 5
+
+
+  # ===== ESB SERVICE =====
+  esb:
+    image: dms-esb
+    ports:
+      - "8084:8084"
+    environment:
+      DOCUMENTS_SERVICE_URL: http://documents:8081
+      COMMENTS_SERVICE_URL: http://comments:8083
+    depends_on:
+      - documents
+      - comments
+    restart: always
+
+  # ===== GATEWAY =====
+  gateway:
+    image: dms-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      DOCUMENTS_SERVICE_URL: http://documents:8081
+      COMMENTS_SERVICE_URL: http://comments:8083
+      ESB_SERVICE_URL: http://esb:8084
+    depends_on:
+      - documents
+      - comments
+      - esb
+    restart: always
+
+volumes:
+  pg_data:
+  minio_data:
