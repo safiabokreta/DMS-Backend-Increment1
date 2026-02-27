@@ -1,7 +1,7 @@
 # DMS — Backend Increment 1
 **Enterprise Computing | 4th Year ENSIA | Deadline: 27 February 2025**
 
----
+
 
 ## Architecture
 
@@ -14,7 +14,7 @@
 | postgres | 5432 | PostgreSQL 15 | Persistent relational storage |
 | minio | 9000/9001 | MinIO | S3-compatible object storage for files |
 
----
+
 
 ## Project Structure
 
@@ -32,7 +32,7 @@ DMS_YourName/
     └── docker-compose.yml       ← local dev
 ```
 
----
+
 
 ## Prerequisites
 
@@ -40,7 +40,7 @@ DMS_YourName/
 - Java 21
 - Maven 3.8+
 
----
+
 
 ## Build All Services
 
@@ -53,7 +53,7 @@ cd esb-service        &&  mvn clean install -DskipTests  &&  docker build -t dms
 cd gateway-service    &&  mvn clean install -DskipTests  &&  docker build -t dms-gateway .
 ```
 
----
+
 
 ## Run with Docker Compose (local dev)
 
@@ -64,7 +64,7 @@ docker compose logs -f
 docker compose down
 ```
 
----
+
 
 ## Deploy with Docker Swarm (submission)
 
@@ -82,7 +82,7 @@ docker stack services dms
 
 ![Swarm services running](screenshots/14_docker_stack_services.png)
 
----
+
 
 ## First-Time Setup — Create MinIO Bucket
 
@@ -92,7 +92,7 @@ docker stack services dms
 
 ![MinIO bucket](screenshots/15_minio_bucket.png)
 
----
+
 
 ## API Demo — Screenshots
 
@@ -113,7 +113,7 @@ docker stack services dms
 **GET /actuator/health**
 ![documents health](screenshots/05_documents_actuator_health.png)
 
----
+
 
 ### Comments Service (port 8083)
 
@@ -126,7 +126,7 @@ docker stack services dms
 **GET /actuator/health**
 ![comments health](screenshots/08_comments_actuator_health.png)
 
----
+
 
 ### ESB / Orchestration (port 8084)
 
@@ -136,7 +136,7 @@ docker stack services dms
 **GET /actuator/health**
 ![esb health](screenshots/10_esb_actuator_health.png)
 
----
+
 
 ### Gateway (port 8080)
 
@@ -149,40 +149,18 @@ docker stack services dms
 **GET /actuator/health**
 ![gateway health](screenshots/13_gateway_actuator_health.png)
 
----
+
 
 ## Environment Variables
 
 | Variable | Default | Used by |
 |---|---|---|
 | DB_URL | jdbc:postgresql://localhost:5432/dmsdb | documents, comments |
-| DB_USER | admin | documents, comments |
-| DB_PASS | ensia123456 | documents, comments |
+| DB_USER | ____ | documents, comments |
+| DB_PASS | ____ | documents, comments |
 | S3_ENDPOINT | http://localhost:9000 | documents |
 | S3_ACCESS_KEY | admin | documents |
 | S3_SECRET_KEY | ensia123456 | documents |
 | S3_BUCKET | ensia | documents |
 | DOCUMENTS_SERVICE_URL | http://localhost:8081 | esb, gateway |
 | COMMENTS_SERVICE_URL | http://localhost:8083 | esb, gateway |
-
----
-
-## Submission Checklist
-
-- [x] Docker Swarm — all 4 services deployed via `docker stack deploy`
-- [x] PostgreSQL — external persistent database (not H2)
-- [x] MinIO S3 — file upload/download on documents service
-- [x] Spring Boot Actuator — `/actuator/health` on all 4 services
-- [x] `restart_policy: condition: any` on all services
-- [x] MinIO replication — `replicas: 2` in docker-stack.yml
-
----
-
-## Common Commands
-
-```bash
-docker stack services dms                    # check replica status
-docker service logs dms_documents --tail 50  # view logs
-docker service update --force dms_esb        # force restart a service
-docker ps                                    # list running containers
-```
