@@ -1,7 +1,7 @@
 # DMS — Backend Increment 1
 **Enterprise Computing | 4th Year ENSIA | Deadline: 27 February 2025**
 
----
+
 
 ## Architecture
 
@@ -14,12 +14,14 @@
 | postgres | 5432 | PostgreSQL 15 | Persistent relational storage |
 | minio | 9000/9001 | MinIO | S3-compatible object storage for files |
 
----
+
 
 ## Project Structure
 
 ```
-lab3/
+DMS_YourName/
+├── README.md
+├── screenshots/
 ├── documents-service/
 ├── comments-service/
 ├── esb-service/
@@ -30,7 +32,7 @@ lab3/
     └── docker-compose.yml       ← local dev
 ```
 
----
+
 
 ## Prerequisites
 
@@ -38,7 +40,7 @@ lab3/
 - Java 21
 - Maven 3.8+
 
----
+
 
 ## Build All Services
 
@@ -51,18 +53,18 @@ cd esb-service        &&  mvn clean install -DskipTests  &&  docker build -t dms
 cd gateway-service    &&  mvn clean install -DskipTests  &&  docker build -t dms-gateway .
 ```
 
----
+
 
 ## Run with Docker Compose (local dev)
 
 ```bash
 cd dms-compose
 docker compose up -d
-docker compose logs -f          # follow logs
-docker compose down             # stop
+docker compose logs -f
+docker compose down
 ```
 
----
+
 
 ## Deploy with Docker Swarm (submission)
 
@@ -76,12 +78,11 @@ docker stack deploy -c docker-stack.yml dms
 
 # Verify all services are 1/1
 docker stack services dms
-
-# Tear down
-docker stack rm dms
 ```
 
----
+![Swarm services running](screenshots/14_docker_stack_services.png)
+
+
 
 ## First-Time Setup — Create MinIO Bucket
 
@@ -89,75 +90,77 @@ docker stack rm dms
 2. Login: `admin` / `ensia123456`
 3. Buckets → Create Bucket → name it `ensia`
 
-Only needed once — volume persists across restarts.
+![MinIO bucket](screenshots/15_minio_bucket.png)
 
----
 
-## API Endpoints
 
-### Documents — port 8081
-```
-GET  /documents/list              → list all documents
-GET  /documents/get/{id}          → get document by id
-POST /documents/add               → form-data: title (Text) + file (File)
-GET  /documents/{id}/file         → download file from MinIO
-GET  /actuator/health             → health check
-```
+## API Demo — Screenshots
 
-### Comments — port 8083
-```
-POST /comments/add                → JSON: { "docId": 1, "content": "text" }
-GET  /comments/list/{docId}       → list comments for a document
-GET  /actuator/health
-```
+### Documents Service (port 8081)
 
-### ESB — port 8084
-```
-GET  /document/{id}               → aggregated { document, comments }
-GET  /actuator/health
-```
+**GET /documents/list — empty on first run**
+![documents list empty](screenshots/01_documents_list_empty.png)
 
-### Gateway — port 8080
-```
-GET  /api/documents/**            → routed to documents-service
-GET  /api/comments/**             → routed to comments-service
-GET  /actuator/health
-```
+**POST /documents/add — form-data: title + file**
+![documents add](screenshots/02_documents_add.png)
 
----
+**GET /documents/get/1 — fetch by id**
+![documents get by id](screenshots/03_documents_get_by_id.png)
+
+**GET /documents/1/file — download file from MinIO**
+![documents download file](screenshots/04_documents_download_file.png)
+
+**GET /actuator/health**
+![documents health](screenshots/05_documents_actuator_health.png)
+
+
+
+### Comments Service (port 8083)
+
+**POST /comments/add**
+![comments add](screenshots/06_comments_add.png)
+
+**GET /comments/list/1**
+![comments list](screenshots/07_comments_list.png)
+
+**GET /actuator/health**
+![comments health](screenshots/08_comments_actuator_health.png)
+
+
+
+### ESB / Orchestration (port 8084)
+
+**GET /document/1 — aggregated document + comments**
+![esb aggregated](screenshots/09_esb_document_aggregated.png)
+
+**GET /actuator/health**
+![esb health](screenshots/10_esb_actuator_health.png)
+
+
+
+### Gateway (port 8080)
+
+**GET /api/documents/list — routed to documents service**
+![gateway documents](screenshots/11_gateway_documents_list.png)
+
+**GET /api/comments/list/1 — routed to comments service**
+![gateway comments](screenshots/12_gateway_comments_list.png)
+
+**GET /actuator/health**
+![gateway health](screenshots/13_gateway_actuator_health.png)
+
+
 
 ## Environment Variables
 
 | Variable | Default | Used by |
 |---|---|---|
 | DB_URL | jdbc:postgresql://localhost:5432/dmsdb | documents, comments |
-| DB_USER | myuser | documents, comments |
-| DB_PASS | safiasafia | documents, comments |
+| DB_USER | ____ | documents, comments |
+| DB_PASS | ____ | documents, comments |
 | S3_ENDPOINT | http://localhost:9000 | documents |
 | S3_ACCESS_KEY | admin | documents |
 | S3_SECRET_KEY | ensia123456 | documents |
 | S3_BUCKET | ensia | documents |
 | DOCUMENTS_SERVICE_URL | http://localhost:8081 | esb, gateway |
 | COMMENTS_SERVICE_URL | http://localhost:8083 | esb, gateway |
-
----
-
-## Submission Checklist
-
-- [x] Docker Swarm — all 4 services deployed via `docker stack deploy`
-- [x] PostgreSQL — external persistent database (not H2)
-- [x] MinIO S3 — file upload/download on documents service
-- [x] Spring Boot Actuator — `/actuator/health` on all 4 services
-- [x] `restart: always` / `restart_policy: condition: any` on all services
-- [x] MinIO replication — `replicas: 2` in docker-stack.yml
-
----
-
-## Common Commands
-
-```bash
-docker stack services dms                    # check replica status
-docker service logs dms_documents --tail 50  # view service logs
-docker service update --force dms_esb        # force restart a service
-docker ps                                    # list running containers
-```
